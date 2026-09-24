@@ -5,3 +5,4 @@ shot.png
 playtest-out/
 *.log
 .DS_Store
+.cache/

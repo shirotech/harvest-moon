@@ -84,6 +84,12 @@ export class Renderer {
     this.stats = { instances: 0, drawCalls: 0, frameMs: 0 };
     this._palDirty = false;
     this._missing = new Set();
+    this.frame = null; // optional 160x144 RGBA frame used instead of world sprites
+  }
+
+  /** Show a raw 160x144 RGBA framebuffer (e.g. from the cartridge emulator) this frame. */
+  presentFramebuffer(rgba) {
+    this.frame = rgba;
   }
 
   get name() {
@@ -264,7 +270,9 @@ export class Renderer {
       ui: this.ui,
       ambient: this.ambient,
       post: this.post,
+      frame: this.frame,
     });
+    this.frame = null;
     this.stats.instances = this.world.n + this.lights.n + this.ui.n;
     this.stats.drawCalls = 4;
     if (t0) this.stats.frameMs = performance.now() - t0;

@@ -98,7 +98,12 @@ fn fs(i: VSOut) -> @location(0) vec4f {
   let u = textureSampleLevel(uiT, samp, suv, 0.0);
   var col = w.rgb * l.rgb;
   col = col * (1.0 - u.a) + u.rgb;
-  if (P.mode > 0.5) {
+  if (P.mode > 1.5) {
+    // Game Boy Color LCD response: channel cross-talk and a darker gamma.
+    let lin = pow(col, vec3f(2.2));
+    let m = vec3f(dot(lin, vec3f(0.82, 0.125, 0.055)), dot(lin, vec3f(0.0, 0.75, 0.25)), dot(lin, vec3f(0.19, 0.125, 0.685)));
+    col = pow(m, vec3f(1.0 / 2.0));
+  } else if (P.mode > 0.5) {
     // Handheld-LCD colour response: slightly washed out, warm and less saturated.
     let lum = dot(col, vec3f(0.299, 0.587, 0.114));
     col = mix(vec3f(lum), col, 0.78);
@@ -165,7 +170,7 @@ export class WebGPUBackend {
       device.createTexture({
         size: [SW, SH],
         format: 'rgba8unorm',
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
       });
     this.worldRT = rt();
     this.lightRT = rt();
@@ -272,8 +277,9 @@ export class WebGPUBackend {
     this.instCap = cap;
   }
 
-  render({ world, lights, ui, ambient, post }) {
+  render({ world, lights, ui, ambient, post, frame }) {
     if (this.lost) return;
+    if (frame) this.device.queue.writeTexture({ texture: this.worldRT }, frame, { bytesPerRow: SW * 4 }, [SW, SH]);
     const total = world.n + lights.n + ui.n;
     this._ensure(Math.max(total, 1));
     const s = this.staging;
@@ -306,7 +312,7 @@ export class WebGPUBackend {
       }
       p.end();
     };
-    pass(this.worldRT.createView(), { r: 0, g: 0, b: 0, a: 1 }, this.spritePipe, 0, world.n);
+    if (!frame) pass(this.worldRT.createView(), { r: 0, g: 0, b: 0, a: 1 }, this.spritePipe, 0, world.n);
     pass(
       this.lightRT.createView(),
       { r: ambient[0], g: ambient[1], b: ambient[2], a: 1 },

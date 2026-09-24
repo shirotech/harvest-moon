@@ -58,6 +58,36 @@ to nine tiles at once.
 - **Chiptune audio** synthesised live with WebAudio in the style of the handheld's
   sound chip: two pulse channels, a wave channel and noise.
 
+## Cartridge mode (play your own Game Boy / Game Boy Color cartridges)
+
+**Title → Game Cartridge** runs a dump of a cartridge you own (`.gb` / `.gbc`), for
+example your own *Harvest Moon 3 GBC* cartridge read with a cartridge dumper.
+You can also drop the file onto the page. **No games, ROMs or boot ROMs are
+included or downloaded**: the emulator starts from the documented post-boot
+hardware state, and your files, battery saves and save states stay in your
+browser (IndexedDB).
+
+- Game Boy Color and original Game Boy modes, MBC1 (incl. multicart), MBC2,
+  MBC3 with real-time clock, MBC5 (+ rumble carts), battery-backed saves
+- CGB features: double speed, VRAM/WRAM banking, colour palettes, BG attributes,
+  HDMA; cycle-accurate CPU memory timing, progressive OAM DMA
+- Four-channel sound through an AudioWorklet
+- Frames go through the same GPU pipeline (WebGPU/WebGL2), so you get the crisp
+  scaler, LCD grid and a **GBC LCD** colour-correction mode
+- Pause menu (**Q** / ◀ / LB): 3 save-state slots, reset, colours, volume.
+  Hold **E** / ▶ / RB to fast-forward. Other buttons map exactly as in the table above.
+
+Accuracy is checked against the open test-ROM suites in
+[c-sp/game-boy-test-roms](https://github.com/c-sp/game-boy-test-roms): Blargg
+`cpu_instrs`, `instr_timing`, `mem_timing`, `mem_timing-2`, `interrupt_time`,
+`halt_bug`, `dmg-acid2`, `cgb-acid2` and the Mooneye acceptance, timer, interrupt,
+OAM DMA and MBC tests all pass (85 of 86 in `tools/emu-suite.ts`).
+
+```sh
+bun tools/emu-suite.ts path/to/game-boy-test-roms      # accuracy suite
+bun tools/emu-run.ts some.gbc --seconds=10 --png=out.png   # headless run + screenshot
+```
+
 ## Technical overview
 
 ```
@@ -66,6 +96,7 @@ src/
             gpu-webgpu.js / gpu-webgl2.js (backends), input.js, text.js
   art/      pixel art as ASCII + procedural painters, one module per theme
   audio/    WebAudio chiptune engine, songs and sound effects
+  emu/      Game Boy / Game Boy Color emulator core (CPU, PPU, APU, MBCs) for cartridge mode
   game/     state & simulation (pure, unit-tested), world, entities, UI, scenes
 tools/      dev server, atlas preview, headless screenshot and playtest harness
 tests/      bun unit tests for the simulation
@@ -91,7 +122,7 @@ framebuffers, instanced arrays).
 ## Development
 
 ```sh
-bun test                                   # simulation unit tests
+bun test                                   # simulation + emulator unit tests
 bun tools/playtest.ts [--backend=webgl2]   # drives the real game in headless Chromium
 bun tools/shot.ts --query="autostart=1&skipintro=1&map=village&time=20"
 bun tools/preview-atlas.ts '^npc_' --scale=4 --out=npcs.png

@@ -94,7 +94,11 @@ void main() {
   vec4 u = texture(uUI, suv);
   vec3 col = w.rgb * l.rgb;
   col = col * (1.0 - u.a) + u.rgb;
-  if (uMode > 0.5) {
+  if (uMode > 1.5) {
+    vec3 lin = pow(col, vec3(2.2));
+    vec3 m = vec3(dot(lin, vec3(0.82, 0.125, 0.055)), dot(lin, vec3(0.0, 0.75, 0.25)), dot(lin, vec3(0.19, 0.125, 0.685)));
+    col = pow(m, vec3(1.0 / 2.0));
+  } else if (uMode > 0.5) {
     float lum = dot(col, vec3(0.299, 0.587, 0.114));
     col = mix(vec3(lum), col, 0.78);
     col = col * vec3(0.94, 0.97, 0.86) + vec3(0.05, 0.06, 0.04);
@@ -243,9 +247,17 @@ export class WebGL2Backend {
     }
   }
 
-  render({ world, lights, ui, ambient, post }) {
+  render({ world, lights, ui, ambient, post, frame }) {
     const gl = this.gl;
     if (gl.isContextLost()) return;
+    if (frame) {
+      // GL framebuffer textures are bottom-up: flip rows while uploading.
+      const flipped = this.flipBuf ?? (this.flipBuf = new Uint8Array(SW * SH * 4));
+      for (let y = 0; y < SH; y++) flipped.set(frame.subarray(y * SW * 4, (y + 1) * SW * 4), (SH - 1 - y) * SW * 4);
+      gl.bindTexture(gl.TEXTURE_2D, this.worldRT.tex);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SW, SH, gl.RGBA, gl.UNSIGNED_BYTE, flipped);
+    }
     const total = world.n + lights.n + ui.n;
     this._ensure(Math.max(total, 1));
     const s = this.staging;
@@ -276,7 +288,7 @@ export class WebGL2Backend {
       this._bindInstances(first);
       gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
     };
-    pass(this.worldRT, [0, 0, 0, 1], false, 0, world.n);
+    if (!frame) pass(this.worldRT, [0, 0, 0, 1], false, 0, world.n);
     pass(this.lightRT, [ambient[0], ambient[1], ambient[2], 1], true, world.n, lights.n);
     pass(this.uiRT, [0, 0, 0, 0], false, world.n + lights.n, ui.n);
 

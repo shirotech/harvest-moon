@@ -31,7 +31,7 @@ export class TitleScene {
     this.world = new World(game, this.demo, 'farm');
     this.cam = { x: 0, y: 40 };
     this.hasSave = hasSave();
-    this.items = this.hasSave ? ['Continue', 'New Game'] : ['New Game'];
+    this.items = this.hasSave ? ['Continue', 'New Game', 'Game Cartridge'] : ['New Game', 'Game Cartridge'];
     this.cursor = 0;
     this.stage = 'press';
     this.fade = 1;
@@ -39,6 +39,18 @@ export class TitleScene {
 
   enter() {
     const q = new URLSearchParams(location.search);
+    if (q.has('rom') && !TitleScene.romBooted) {
+      // ?rom=<url> boots a cartridge dump directly (handy for local testing)
+      TitleScene.romBooted = true;
+      fetch(q.get('rom'))
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.arrayBuffer();
+        })
+        .then((buf) => import('./cartridge.js').then((m) => m.bootCartridge(this.game, new Uint8Array(buf), q.get('rom'))))
+        .catch((e) => console.error('cartridge load failed', e));
+      return;
+    }
     if (q.has('autostart')) {
       const s = applyDebugParams(newGame({ name: q.get('name') ?? 'Robin', gender: q.get('girl') ? 'girl' : 'boy', seed: 77 }));
       this.game.setScene(new PlayScene(this.game, s, { skipIntro: q.has('skipintro') }));
@@ -82,6 +94,10 @@ export class TitleScene {
   }
 
   next() {
+    if (this.choice === 'Game Cartridge') {
+      import('./cartridge.js').then((m) => this.game.setScene(new m.CartridgeScene(this.game)));
+      return;
+    }
     if (this.choice === 'Continue') {
       const s = loadGame();
       if (s) {
@@ -120,8 +136,8 @@ export class TitleScene {
       if (Math.floor(this.t / 30) % 2 === 0) text.center('Press START', 0, 160, 104, 'font_light');
     } else {
       const h = this.items.length * LINE_H + 12;
-      const wdt = 80;
-      const x = 40, y = 96;
+      const wdt = 96;
+      const x = 32, y = 90;
       drawWindow(r, x, y, wdt, h);
       this.items.forEach((it, i) => {
         text.draw(it, x + 18, y + 6 + i * LINE_H);

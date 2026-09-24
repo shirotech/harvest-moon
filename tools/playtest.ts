@@ -325,6 +325,42 @@ const tests: Record<string, () => Promise<void>> = {
     await p.close();
   },
 
+  async cartridge() {
+    if (!(await Bun.file('.cache/roms/cpu_instrs.gb').exists())) {
+      console.log('  (skipped: put open test ROMs in .cache/roms to run)');
+      return;
+    }
+    // library screen from the title menu
+    const t = await open('');
+    await t.waitForTimeout(800);
+    await tap(t, 'Enter', 1, 400);
+    await ev(t, `GAME.scene.cursor = GAME.scene.items.indexOf('Game Cartridge')`);
+    await tap(t, 'Enter', 1, 1500);
+    await shot(t, 'cart-library');
+    const li = await info(t);
+    check(li.scene === 'CartridgeScene', `title menu opens the cartridge library (${li.scene})`);
+    await t.close();
+
+    const p = await open('rom=.cache/roms/cpu_instrs.gb');
+    await p.waitForFunction(() => (window as any).GAME.scene?.constructor?.name === 'EmulatorScene', null, { timeout: 10000 });
+    await p.waitForTimeout(3000);
+    const i = await info(p);
+    check(i.scene === 'EmulatorScene' && i.frames > 60, `cartridge boots and runs (${i.frames} frames)`);
+    await shot(p, 'cart-running');
+    await tap(p, 'KeyQ', 1, 300);
+    await shot(p, 'cart-menu');
+    await tap(p, 'ArrowDown', 1, 150);
+    await tap(p, 'KeyZ', 1, 800);
+    const saved = await ev(p, `new Promise((res) => { const r = indexedDB.open('moonlit-cartridges'); r.onsuccess = () => { const t = r.result.transaction('states').objectStore('states').count(); t.onsuccess = () => res(t.result); }; })`);
+    check(saved >= 1, `save state stored (${saved})`);
+    await tap(p, 'KeyQ', 1, 300);
+    await tap(p, 'ArrowDown', 2, 150);
+    await tap(p, 'KeyZ', 1, 800);
+    const j = await info(p);
+    check(j.scene === 'EmulatorScene', 'load state keeps running');
+    await p.close();
+  },
+
   async places() {
     for (const [name, q] of [
       ['forest', 'map=forest&x=12&y=10&time=11'],
