@@ -188,6 +188,7 @@ export class PlayScene {
     this.spawnAnimals();
     this.updateAtmosphere(true);
     this.snapCamera();
+    this.spawnCritters();
     this.onEnterMap(id, initial);
   }
 
@@ -262,10 +263,7 @@ export class PlayScene {
 
   placementFor(id) {
     if (this.cutsceneNPCs?.has(id)) return null;
-    const p = NPCS[id].schedule(this.scheduleCtx());
-    if (!p) return null;
-    const map = this.game.mapsCache?.[p.map];
-    return p;
+    return NPCS[id].schedule(this.scheduleCtx());
   }
 
   resolveSpot(p) {
@@ -362,6 +360,7 @@ export class PlayScene {
     if (this.flash > 0) this.flash--;
     this.updateCamera();
     this.spawnAmbientFx();
+    this.updateCritters();
   }
 
   tickClock() {
@@ -457,6 +456,50 @@ export class PlayScene {
     if (s.weather === 'snow' || s.weather === 'blizzard') c = [c[0] * 0.92, c[1] * 0.95, c[2] * 1.0];
     if (this.flash > 0) c = mix3(c, [1.6, 1.6, 1.8], this.flash / 14);
     return c;
+  }
+
+  spawnCritters() {
+    this.critters = [];
+    const s = this.state;
+    const sn = season(s);
+    const h = s.time.min / 60;
+    if (!this.world.outdoor || isWet(s.weather) || h < 7 || h > 18) return;
+    if (sn === 'spring' || sn === 'summer') {
+      for (let k = 0; k < 3; k++) {
+        const x = 40 + Math.random() * (this.world.pw - 80);
+        const y = 40 + Math.random() * (this.world.ph - 80);
+        this.critters.push({ kind: 'butterfly', x, y, hx: x, hy: y, vx: 0, vy: 0, t: Math.random() * 100 });
+      }
+    }
+  }
+
+  updateCritters() {
+    for (const c of this.critters ?? []) {
+      c.t++;
+      if (c.kind === 'butterfly') {
+        c.vx += (Math.random() - 0.5) * 0.12 + (c.hx - c.x) * 0.0008;
+        c.vy += (Math.random() - 0.5) * 0.12 + (c.hy - c.y) * 0.0008;
+        c.vx = Math.max(-0.6, Math.min(0.6, c.vx));
+        c.vy = Math.max(-0.5, Math.min(0.5, c.vy));
+      }
+      c.x += c.vx;
+      c.y += c.vy;
+    }
+    // occasionally a bird flies over
+    if (this.world.outdoor && !isWet(this.state.weather) && this.state.time.min < 18 * 60 && Math.random() < 0.0015) {
+      const left = Math.random() < 0.5;
+      this.critters.push({ kind: 'bird', x: this.cam.x + (left ? -10 : 170), y: this.cam.y + 10 + Math.random() * 60, vx: left ? 1.1 : -1.1, vy: -0.15, t: 0 });
+    }
+    this.critters = (this.critters ?? []).filter((c) => c.kind !== 'bird' || c.t < 400);
+  }
+
+  drawCritters(r) {
+    for (const c of this.critters ?? []) {
+      const x = c.x - this.cam.x, y = c.y - this.cam.y;
+      if (x < -10 || y < -10 || x > 170 || y > 154) continue;
+      if (c.kind === 'butterfly') r.spr(`butterfly_${Math.floor(c.t / 8) % 2}`, x, y);
+      else r.spr(`bird_${Math.floor(c.t / 10) % 2}`, x, y, c.vx < 0 ? FLIP_X : 0);
+    }
   }
 
   spawnAmbientFx() {
@@ -1362,6 +1405,7 @@ export class PlayScene {
     const mayor = new NPC(this, 'hollis', NPCS.hollis);
     const ms = farm.map.spots.intro_mayor;
     mayor.placeAt(30, 8, 'left');
+    mayor.speed = 1.2;
     this.npcs.push(mayor);
     this.fade = 1;
     this.forcedMusic = 'title';
@@ -1481,6 +1525,7 @@ export class PlayScene {
       r.spr(`fx_bobber_${bob}`, a.bx - 4 - cam.x, a.by - 4 - cam.y + (a.phase === 'bite' ? 2 : 0));
     }
     this.fx.draw(r, cam, this.game.text);
+    this.drawCritters(r);
     this.drawTargetCursor(r);
     this.weather.draw(r, this.game.frame);
     this.drawLights(r);

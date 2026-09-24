@@ -61,7 +61,10 @@ async function main() {
     const availW = window.innerWidth - 16;
     const availH = window.innerHeight - padH - 16;
     const fit = Math.min(availW / SCREEN_W, availH / SCREEN_H);
-    const scale = fit >= 2 ? Math.floor(fit) : Math.max(1, fit);
+    // Integer scaling on desktops; touch screens fill the width (the composite
+    // shader's sharp-bilinear filter keeps pixels crisp at fractional scales).
+    const touch = document.body.classList.contains('touch');
+    const scale = !touch && fit >= 2 ? Math.floor(fit) : Math.max(1, fit);
     const cssW = Math.floor(SCREEN_W * scale);
     const cssH = Math.floor(SCREEN_H * scale);
     c.style.width = `${cssW}px`;
