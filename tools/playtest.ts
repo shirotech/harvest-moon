@@ -24,7 +24,7 @@ async function open(query: string): Promise<Page> {
   page.on('pageerror', (e) => errors.push(`${query}: ${e.message}`));
   page.on('console', (m) => {
     const t = m.text();
-    if (m.type() === 'error' && !/404|audio/.test(t)) errors.push(`${query}: console: ${t}`);
+    if (m.type() === 'error') errors.push(`${query}: console: ${t}`);
     if (/missing sprite|unknown palette/.test(t)) errors.push(`${query}: ${t}`);
   });
   await page.goto(`http://localhost:${srv.port}/?renderer=${backend}&${query}`);

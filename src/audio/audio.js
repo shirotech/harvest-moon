@@ -35,7 +35,7 @@ const LOOKAHEAD = 0.12; // seconds scheduled ahead of the clock
 const HIDDEN_LOOKAHEAD = 1.2; // background tabs tick slowly; look further ahead
 const TICK_MS = 25;
 const MUSIC_LEVEL = 1.0;
-const SFX_LEVEL = 1.0;
+const SFX_LEVEL = 1.1;
 const AMB_LEVEL = 0.6;
 const JINGLE_TAIL = 0.6;
 const SR = 44100;
@@ -251,6 +251,7 @@ export function compileSong(name, def) {
         midi,
         glideFrom: null,
         inst: d.inst || e.inst,
+        gate: d.gate ?? e.gate,
         vol: Math.max(1, Math.round(e.vol * (d.vol ?? 0.5))),
       });
     }
@@ -485,17 +486,17 @@ function voice(ctx, R, dest, v) {
     P = src.playbackRate;
     conv = (x) => x / ctx.sampleRate;
     base = conv(v.clock || ctx.sampleRate);
-    P.value = v.from != null ? conv(v.from) : base;
   } else {
     src = ctx.createOscillator();
     if (v.src === 'sine' || v.src === 'triangle') src.type = v.src;
     else src.setPeriodicWave(v.src === 'wave' ? R.wave(v.wave) : R.pulse(v.duty ?? 2));
     P = src.frequency;
     base = v.f;
-    // Chrome applies an event at the exact start time a little late, so also set the
-    // intrinsic value: the first samples of the note are then already at pitch.
-    P.value = v.from != null ? v.from : base;
   }
+  // Chrome applies an event at the exact start time a little late, so also set the
+  // intrinsic value: the first samples of the note are then already at pitch.
+  const first = v.arp && v.arp.length > 1 ? v.arp[0] : v.seq && v.seq.length ? v.seq[0] : 0;
+  P.value = v.from != null ? conv(v.from) : base * Math.pow(2, first / 12);
   nodes.push(src);
   const endGuess = off + Math.max(0.005, v.r || 0);
   // pitch
@@ -1243,6 +1244,21 @@ export class AudioEngine {
     this._amb.schedule(ctx.currentTime + LOOKAHEAD);
   }
 
+  /** Stop everything and release the AudioContext and timers (engine is reusable after unlock()). */
+  close() {
+    if (this._worker) { this._worker.terminate(); this._worker = null; }
+    if (this._timer) { clearInterval(this._timer); this._timer = null; }
+    if (this._jingle) { const j = this._jingle; this._jingle = null; j.resolve(); }
+    const ctx = this.ctx;
+    this.ctx = null;
+    this._g = null;
+    this._music = null;
+    this._amb = null;
+    this._fading = [];
+    this._paused = null;
+    if (ctx) { try { ctx.close(); } catch { /* ignore */ } }
+  }
+
   /**
    * Render a track, jingle, sfx or ambient loop offline (for tests / previews).
    * Names may be prefixed 'music:', 'sfx:' or 'amb:' to disambiguate.
@@ -1272,15 +1288,31 @@ export class AudioEngine {
     const ctx = new OAC(2, Math.max(1, Math.ceil(secs * SR)), SR);
     const g = buildGraph(ctx, this._mv, this._sv);
     const R = resources(ctx);
+    let sched = null;
     if (kind === 'music') {
       const p = new Player(ctx, R, song, g.duck, 0, 0, song.loop);
-      p.schedule(secs);
+      sched = (until) => p.schedule(until);
     } else if (kind === 'sfx') {
       const s = new Synth(ctx, R, g.sfx, 0.01);
       SFX[key](s);
     } else {
       const a = new Ambient(ctx, R, key, AMBIENT[key], g.amb, 0, 0.3, 12345);
-      a.schedule(secs);
+      sched = (until) => a.schedule(until);
+    }
+    if (sched) {
+      // Schedule in chunks, like the live lookahead scheduler, so only a second or
+      // two of nodes exist at a time (falls back to scheduling everything at once).
+      const STEP = 1;
+      const ahead = (t) => Math.min(secs, t + STEP * 1.5);
+      if (typeof ctx.suspend === 'function' && secs > STEP * 2) {
+        sched(ahead(0));
+        for (let t = STEP; t < secs - 0.05; t += STEP) {
+          ctx.suspend(t).then(() => {
+            sched(ahead(t));
+            ctx.resume();
+          });
+        }
+      } else sched(secs);
     }
     return ctx.startRendering();
   }

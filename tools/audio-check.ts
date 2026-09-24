@@ -153,7 +153,7 @@ for (const n of lists.amb) items.push({ kind: 'amb', name: n, secs: 12 });
 if (!NO_WAV) mkdirSync(OUT, { recursive: true });
 const results: any[] = [];
 console.log('\n== offline renders (Chromium) ==');
-console.log(`${pad('kind', 7)}${pad('name', 12)}${lpad('dur', 7)}${lpad('peak', 7)}${lpad('rms dB', 8)}${lpad('loud dB', 8)}${lpad('jump', 6)}${lpad('seam', 6)}${lpad('ms', 6)}  flags`);
+console.log(`${pad('kind', 7)}${pad('name', 12)}${lpad('dur', 7)}${lpad('peak', 7)}${lpad('rms dB', 8)}${lpad('loud dB', 8)}${lpad('jump', 6)}${lpad('seam', 6)}${lpad('key', 5)}${lpad('ms', 6)}  flags`);
 for (const it of items) {
   if (onlyRe && !onlyRe.test(it.name)) continue;
   const info = staticInfo[it.name];
@@ -227,6 +227,45 @@ for (const it of items) {
       for (let i = 0; i < A.length; i++) { ab += (A[i] - ma) * (B[i] - mb); aa += (A[i] - ma) ** 2; bb += (B[i] - mb) ** 2; }
       seam = ab / Math.sqrt(aa * bb || 1);
     }
+    // chroma of the rendered audio (first 30 s) for an end-to-end key estimate
+    let chroma = null as null | number[];
+    if (kind === 'music' || kind === 'jingle') {
+      const N = 8192;
+      const re = new Float64Array(N), im = new Float64Array(N);
+      const cos = new Float64Array(N / 2), sin = new Float64Array(N / 2);
+      for (let i = 0; i < N / 2; i++) { cos[i] = Math.cos((2 * Math.PI * i) / N); sin[i] = -Math.sin((2 * Math.PI * i) / N); }
+      const fft = () => {
+        for (let i = 1, j = 0; i < N; i++) {
+          let bit = N >> 1;
+          for (; j & bit; bit >>= 1) j ^= bit;
+          j ^= bit;
+          if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+        }
+        for (let len = 2; len <= N; len <<= 1) {
+          const st = N / len;
+          for (let i = 0; i < N; i += len)
+            for (let k = 0; k < len / 2; k++) {
+              const wr = cos[k * st], wi = sin[k * st];
+              const xr = re[i + k + len / 2] * wr - im[i + k + len / 2] * wi;
+              const xi = re[i + k + len / 2] * wi + im[i + k + len / 2] * wr;
+              re[i + k + len / 2] = re[i + k] - xr; im[i + k + len / 2] = im[i + k] - xi;
+              re[i + k] += xr; im[i + k] += xi;
+            }
+        }
+      };
+      chroma = new Array(12).fill(0);
+      const lim = Math.min(end, Math.round(30 * buf.sampleRate));
+      for (let s0 = 0; s0 + N <= lim; s0 += N) {
+        for (let i = 0; i < N; i++) { re[i] = (chs[0][s0 + i] + chs[1][s0 + i]) * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / N)); im[i] = 0; }
+        fft();
+        for (let k = 1; k < N / 2; k++) {
+          const f = (k * buf.sampleRate) / N;
+          if (f < 65 || f > 2100) continue;
+          const pc = ((Math.round(12 * Math.log2(f / 440)) + 9) % 12 + 12) % 12;
+          chroma[pc] += Math.hypot(re[k], im[k]);
+        }
+      }
+    }
     let wav = null as null | string;
     if (wavSecs >= 0) {
       const len = wavSecs > 0 ? Math.min(buf.length, Math.round(wavSecs * buf.sampleRate)) : buf.length;
@@ -242,7 +281,7 @@ for (const it of items) {
       for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       wav = btoa(bin);
     }
-    return { dur: buf.duration, peak, rms, loud, jump, clip, tail, seam, ms, wav };
+    return { dur: buf.duration, peak, rms, loud, jump, clip, tail, seam, ms, wav, chroma };
   }, { name: it.name, kind: it.kind, secs, wavSecs, loopLen: it.kind === 'music' ? info.length : 0 });
 
   const flags: string[] = [];
@@ -257,6 +296,24 @@ for (const it of items) {
   if ((it.kind === 'sfx' || it.kind === 'jingle') && r.tail > 0.02) flags.push(`TAIL(${r.tail.toFixed(3)})`);
   if (r.seam != null && r.seam < 0.85) flags.push(`SEAM(${r.seam.toFixed(2)})`);
   if (it.kind === 'jingle' && (r.dur < 2 || r.dur > 6.2)) flags.push(`LEN(${r.dur.toFixed(2)})`);
+  let audioKey = '';
+  if (r.chroma) {
+    let best = { r: -2, k: 0, minor: false };
+    for (let k = 0; k < 12; k++) {
+      const rot = (p: number[]) => p.map((_, i) => p[(i - k + 12) % 12]);
+      const a = corr(r.chroma, rot(KK_MAJ)), b = corr(r.chroma, rot(KK_MIN));
+      if (a > best.r) best = { r: a, k, minor: false };
+      if (b > best.r) best = { r: b, k, minor: true };
+    }
+    audioKey = `${PC[best.k]}${best.minor ? 'm' : ''}`;
+    // accept the declared key or a closely related one (scales differing by ≤ 1 accidental):
+    // overtones of pulse waves bias chroma toward the dominant / mediant.
+    const def = (SONGS as any)[it.name];
+    const want = new Set(scaleOf(def.key, def.mode));
+    const got = scaleOf(PC[best.k], best.minor ? 'minor' : 'major');
+    const diff = got.filter((pc: number) => !want.has(pc)).length;
+    if (!def.chromatic && diff > 1) flags.push(`KEY?(${audioKey})`);
+  }
   for (const f of flags) flag(`${it.name}: ${f}`);
   if (r.wav) {
     const file = join(OUT, `${it.name}.wav`);
@@ -264,7 +321,7 @@ for (const it of items) {
   }
   results.push({ ...it, ...r, wav: undefined });
   console.log(
-    `${pad(it.kind, 7)}${pad(it.name, 12)}${lpad(r.dur.toFixed(2), 7)}${lpad(r.peak.toFixed(3), 7)}${lpad(db(r.rms).toFixed(1), 8)}${lpad(db(r.loud).toFixed(1), 8)}${lpad(r.jump.toFixed(2), 6)}${lpad(r.seam == null ? '-' : r.seam.toFixed(2), 6)}${lpad(Math.round(r.ms), 6)}  ${flags.join(' ') || 'ok'}`,
+    `${pad(it.kind, 7)}${pad(it.name, 12)}${lpad(r.dur.toFixed(2), 7)}${lpad(r.peak.toFixed(3), 7)}${lpad(db(r.rms).toFixed(1), 8)}${lpad(db(r.loud).toFixed(1), 8)}${lpad(r.jump.toFixed(2), 6)}${lpad(r.seam == null ? '-' : r.seam.toFixed(2), 6)}${lpad(audioKey || '-', 5)}${lpad(Math.round(r.ms), 6)}  ${flags.join(' ') || 'ok'}`,
   );
 }
 

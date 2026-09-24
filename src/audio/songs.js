@@ -32,7 +32,7 @@
 //  A channel may instead be derived from another channel:
 //   { from: 'p1', delay: 0.5 }        echo, delayed in beats, wrapping round the loop
 //   { from: 'p1', steps: -2 }         diatonic harmony (steps in the song's key/mode)
-//   plus vol (multiplier) and inst (instrument override).
+//   plus vol (multiplier), inst (instrument override) and gate (q override).
 //
 //  Song fields: bpm, key, mode ('major'|'minor'), meter (beats per bar, default 4),
 //  swing (0..0.45, delays off-beat 8ths), loop (false for jingles), chromatic
@@ -141,7 +141,7 @@ export const SONGS = {
       >c4 e4 g4. f8 | e4 d8 e8 <b2 | a4 >c4 f4 e8 d8 | d2. c8 d8 |
       f4. e8 d4 c4 | d4 <b8 >c8 d2 | e4. d8 e4 g4 | a2 g4 e4 |
       f4. e8 d4 <a4 | b4 >d4 g4 f4 | e4. d8 c4 <a4 | >d2. r4 |`,
-    p2: { from: 'p1', delay: 0.75, vol: 0.42 },
+    p2: { from: 'p1', delay: 0.75, vol: 0.55, inst: 'soft', gate: 4 },
     wv: `@harp v12 l8
       {C}|{Am}|{F}|{G}|{C}|{EmB}|{F}|{Gs}|
       {F}|{G}|{C}|{Am}|{Dm}|{G}|{CeF}|{Gs}|`,
@@ -228,7 +228,7 @@ export const SONGS = {
       A: `o4 f8 b-8 >d4. c8 d4 | f4. d8 <b-2 | g8 b-8 >e-4. d8 e-4 | c4. <a8 f2 |
           f8 b-8 >d4. c8 d8 f8 | g4. f8 e-4 <b-4 | >e-4. d8 c4 <a4 | b-2. r4 |`,
       B: `o5 d4 g4 b-4. a8 | a2 f4 d4 | g4. f8 e-4 <b-4 | >d2. c8 d8 |
-          e-4. d8 c4 <g4 | >f4. d8 <a4 >c4 | <b-4 >e-4 g4 f8 e-8 | f2 e-4 c4 |`,
+          e-4. d8 c4 e-4 | f4. d8 <a4 >c4 | <b-4 >e-4 g4 f8 e-8 | f2 e-4 c4 |`,
       Bb: 'o3 b- >d f b- f d <b- >d',
       Gm7: 'o3 g b- >d f d <b- g b-',
       Eb: 'o3 e- g b- >e- <b- g e- g',
@@ -279,7 +279,7 @@ export const SONGS = {
       D: waltz('o3d', 'o3a', 'o4d'),
     },
     p1: '@bell v14 {A}{B} K12 v11 {A}{B} K0',
-    p2: { from: 'p1', delay: 0.5, vol: 0.4 },
+    p2: { from: 'p1', delay: 0.5, vol: 0.4, gate: 6 },
     wv: `@sub v7 {W1}
       @harp v8 {Em}{C}{Am}{B7}{Em}{C}{B7}{Em} {G}{D}{C}{G}{Am}{Em}{C}{B7}`,
     ns: '[r4 v4 b4 v3 b4 |]16 [v6 b4 v4 b4 v3 b4 |]16',
@@ -296,8 +296,8 @@ export const SONGS = {
       A: `o5 c8 f8 a8 f8 >c4 <a4 | a8 g8 f8 d8 f4 d4 | <b-8 >d8 g8 f8 d4 <b-4 |
           >c8 e8 g8 b-8 a4 g4 | c8 f8 a8 f8 >c4 <a4 | >d8 c8 <a8 f8 d4 f4 |`,
       E1: 'g8 a8 b-8 a8 g4 d4 | e8 f8 g8 a8 b-4 r4 |',
-      B: `o5 >d4. c8 <b-4 f4 | a4. g8 f4 c4 | d8 f8 b-8 >d8 c4 <b-4 | a2 r4 c4 |
-          b-8 a8 g8 f8 d4 g4 | e8 g8 >c8 <b-8 a4 g4 | f4 a4 >d4 <a4 | g4 f4 e4 g4 |`,
+      B: `o5 >d4. c8 <b-4 f4 | a4. g8 f4 c4 | d8 f8 b-8 >d8 c4 <b-4 | a2 r4 >c4 |
+          <b-8 a8 g8 f8 d4 g4 | e8 g8 >c8 <b-8 a4 g4 | f4 a4 >d4 <a4 | g4 f4 e4 g4 |`,
       E2: '>d4 <b-4 g4 e4 | f2. r4 |',
       CA: cat(pah(MAJ, 'o4f'), pah(MIN, 'o4d'), pah(MIN7, 'o3g'), pah(DOM7, 'o4c'), pah(MAJ, 'o4f'), pah(MIN, 'o4d')),
       CE1: cat(pah(MIN7, 'o3g'), pah(DOM7, 'o4c')),
