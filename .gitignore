@@ -1,0 +1,7 @@
+node_modules/
+dist/
+art-preview.png
+shot.png
+playtest-out/
+*.log
+.DS_Store

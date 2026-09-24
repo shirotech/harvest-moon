@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#101820">
+<meta name="description" content="Moonlit Acres — an original Game Boy Color-style farming game, rendered with WebGPU.">
+<title>Moonlit Acres</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23182838'/%3E%3Cpath d='M10 3a5 5 0 1 0 3 8 4 4 0 1 1-3-8z' fill='%23f8d060'/%3E%3C/svg%3E">
+<style>
+  :root { --bg: #0c1118; --btn: #2a3444; --btn-down: #4a5a74; --ink: #d8e0e8; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; touch-action: none;
+    font-family: system-ui, sans-serif; color: var(--ink); user-select: none; -webkit-user-select: none; }
+  #wrap { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #screen { display: block; image-rendering: pixelated; background: #000; box-shadow: 0 0 0 4px #000, 0 8px 40px #0008; border-radius: 4px; }
+  #boot { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; line-height: 1.5; }
+  #boot.hidden { display: none; }
+  #boot .err { color: #f08070; white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px; max-width: 640px; }
+  #pad { display: none; width: 100%; max-width: 560px; padding: 10px 18px calc(10px + env(safe-area-inset-bottom)); gap: 8px;
+    grid-template-columns: 1fr auto 1fr; align-items: center; }
+  body.touch #pad { display: grid; }
+  .dpad { position: relative; width: 132px; height: 132px; }
+  .dpad [data-btn] { position: absolute; width: 44px; height: 44px; background: var(--btn); border-radius: 6px; }
+  .dpad [data-btn="up"] { left: 44px; top: 0; }
+  .dpad [data-btn="down"] { left: 44px; bottom: 0; }
+  .dpad [data-btn="left"] { left: 0; top: 44px; }
+  .dpad [data-btn="right"] { right: 0; top: 44px; }
+  .dpad [data-btn="up left"] { left: 0; top: 0; background: transparent; }
+  .dpad [data-btn="up right"] { right: 0; top: 0; background: transparent; }
+  .dpad [data-btn="down left"] { left: 0; bottom: 0; background: transparent; }
+  .dpad [data-btn="down right"] { right: 0; bottom: 0; background: transparent; }
+  .dpad .hub { position: absolute; left: 44px; top: 44px; width: 44px; height: 44px; background: var(--btn); }
+  .mid { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  .pill { width: 64px; height: 22px; border-radius: 11px; background: var(--btn); font-size: 10px; letter-spacing: 1px;
+    display: grid; place-items: center; text-transform: uppercase; }
+  .ab { position: relative; width: 140px; height: 120px; justify-self: end; }
+  .ab [data-btn] { position: absolute; width: 58px; height: 58px; border-radius: 50%; background: #8a3048; display: grid;
+    place-items: center; font-weight: 700; font-size: 18px; }
+  .ab [data-btn="a"] { right: 0; top: 8px; }
+  .ab [data-btn="b"] { left: 8px; bottom: 0; }
+  .ab .lr { position: absolute; top: -8px; left: 0; display: flex; gap: 6px; }
+  .ab .lr [data-btn] { position: static; width: 34px; height: 22px; border-radius: 6px; font-size: 10px; background: var(--btn); }
+  [data-btn].down { background: var(--btn-down) !important; }
+  .ab [data-btn].down { background: #c05070 !important; }
+  #help { position: fixed; right: 10px; bottom: 8px; font-size: 11px; opacity: .55; text-align: right; line-height: 1.5; }
+  body.touch #help { display: none; }
+  kbd { background: #222c38; border-radius: 3px; padding: 0 4px; font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="screen" width="160" height="144" aria-label="Moonlit Acres game screen"></canvas>
+  <div id="pad" aria-hidden="true">
+    <div class="dpad">
+      <div class="hub"></div>
+      <div data-btn="up"></div><div data-btn="down"></div><div data-btn="left"></div><div data-btn="right"></div>
+      <div data-btn="up left"></div><div data-btn="up right"></div><div data-btn="down left"></div><div data-btn="down right"></div>
+    </div>
+    <div class="mid">
+      <div class="pill" data-btn="select">Select</div>
+      <div class="pill" data-btn="start">Start</div>
+    </div>
+    <div class="ab">
+      <div class="lr"><div data-btn="l">◀</div><div data-btn="r">▶</div></div>
+      <div data-btn="b">B</div><div data-btn="a">A</div>
+    </div>
+  </div>
+</div>
+<div id="help">
+  Move <kbd>←↑↓→</kbd>/<kbd>WASD</kbd> · A <kbd>Z</kbd> talk/pick up · B <kbd>X</kbd> use tool<br>
+  Select <kbd>Shift</kbd>/<kbd>Q</kbd><kbd>E</kbd> switch tool · Start <kbd>Enter</kbd> menu · <kbd>F</kbd> fullscreen
+</div>
+<div id="boot">Loading Moonlit Acres…</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

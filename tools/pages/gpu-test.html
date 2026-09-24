@@ -1,0 +1,49 @@
+<!doctype html>
+<html><body style="margin:0;background:#222">
+<canvas id="c" width="480" height="432"></canvas>
+<script type="module">
+import { AtlasBuilder } from '../../src/engine/atlas.js';
+import { Renderer, FLIP_X } from '../../src/engine/renderer.js';
+const A = new AtlasBuilder();
+A.pal('t', ['#181010', '#e03030', '#30c030', '#3050e0']);
+A.pal('g@spring', ['#204020', '#40a040']);
+A.pal('g@fall', ['#402010', '#c08020']);
+A.sprite('arrow', 't', `
+  ...11...
+  ..1221..
+  .122221.
+  11133111
+  ..1331..
+  ..1441..
+  ..1441..
+  ..1111..
+`);
+A.paint('tile', 'g', 16, 16, (g) => { g.fill(2); g.frame(0, 0, 16, 16, 1); });
+const atlas = A.build(256);
+const q = new URLSearchParams(location.search);
+const canvas = document.getElementById('c');
+try {
+  const r = await Renderer.create(canvas, atlas, { backend: q.get('backend') ?? undefined });
+  r.applySeason(q.get('season') ?? 'spring');
+  window.R = r;
+  const frame = () => {
+  r.begin();
+  for (let y = 0; y < 9; y++) for (let x = 0; x < 10; x++) r.spr('tile', x * 16, y * 16);
+  r.spr('arrow', 10, 10);
+  r.spr('arrow', 30, 10, FLIP_X);
+  r.spr('arrow', 50, 10, 0, -1, 1, 2);
+  r.rect(100, 100, 20, 20, 1, 1, 0, 0.5);
+  r.ambient = [0.5, 0.5, 0.7];
+  r.light(80, 72, 40, 1, 0.8, 0.5, 1);
+  r.useUI();
+  r.rect(0, 136, 160, 8, 0, 0, 0, 0.75);
+  r.spr('arrow', 150, 136);
+  r.end();
+  requestAnimationFrame(frame);
+  };
+  frame();
+  window.RESULT = { ok: true, backend: r.name, warnings: r.warnings };
+} catch (e) {
+  window.RESULT = { ok: false, error: String(e.stack ?? e) };
+}
+</script></body></html>
