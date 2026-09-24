@@ -64,7 +64,7 @@ export const INSTRUMENTS = {
   soft: { duty: 0, a: 0.03, d: 0.8, s: 0.75, r: 0.18, vib: [0.35, 0.1, 4.6], gain: 0.9 },
   pluck: { duty: 1, a: 0.003, d: 0.12, s: 0.18, r: 0.06, gain: 0.8 },
   stab: { duty: 2, a: 0.003, d: 0.07, s: 0.3, r: 0.04, gain: 0.6, arpRate: 1 / 60 },
-  bell: { duty: 0, a: 0.002, d: 0.32, s: 0, r: 0.25, gain: 1.0 },
+  bell: { duty: 0, a: 0.002, d: 0.32, s: 0, r: 0.25, gain: 1.3 },
   brass: { duty: 2, a: 0.012, d: 0.3, s: 0.72, r: 0.07, bend: [-1, 0.035], vib: [0.22, 0.18, 6], gain: 0.9 },
   warm: { duty: 2, a: 0.035, d: 0.6, s: 0.72, r: 0.16, vib: [0.24, 0.14, 5], gain: 0.8 },
   bass: { wave: 'bass', a: 0.004, d: 0.25, s: 0.75, r: 0.04, gain: 1.0 },
@@ -129,7 +129,6 @@ export const SONGS = {
       F: 'o2 f >c f a >c <a f c',
       G: 'o2 g >d g b >d <b g d',
       EmB: 'o2 b >e g b >e <b g e',
-      Em: 'o2 e b >e g b g e <b',
       Gs: 'o2 g >d g >c d <b g d',
       Dm: 'o2 d a >d f a f d <a',
       CeF: 'o2 e >c e g <f >c f a',
@@ -145,7 +144,7 @@ export const SONGS = {
     p2: { from: 'p1', delay: 0.75, vol: 0.42 },
     wv: `@harp v12 l8
       {C}|{Am}|{F}|{G}|{C}|{EmB}|{F}|{Gs}|
-      {F}|{G}|{Em}|{Am}|{Dm}|{G}|{CeF}|{Gs}|`,
+      {F}|{G}|{C}|{Am}|{Dm}|{G}|{CeF}|{Gs}|`,
     ns: `l8 [{NA}|]8 [{NB}|]7 {NF}|`,
   },
 
@@ -174,7 +173,7 @@ export const SONGS = {
       DF: 'v9 k8 v4 h8 v8 s8 v4 h8 v7 s16 s16 v8 s8 v9 s16 s16 v10 s8 |',
     },
     p1: '@lead v12 {MA}{E1} {MA}{E2} {MB} {MA}{E3}',
-    p2: `@stab v9
+    p2: `@stab v10
       {SA}{SE}${stab(MAJ, 'o4d')}
       {SA}{SE}${stab(MAJ, 'o4d')}
       {SB}
@@ -249,7 +248,7 @@ export const SONGS = {
       DF: 'v7 k8 v3 h8 v6 b8 v3 h8 v5 b16 b16 v6 b8 v7 b8 v8 b8 |',
     },
     p1: '@warm v12 q8 {A}{B}{A}',
-    p2: '@pluck v9 l8 {PA}{PB}{PA}',
+    p2: '@pluck v10 l8 {PA}{PB}{PA}',
     wv: `@bass v13
       {LA}o2b-4. o2b-8 o3f4 o3d4 |
       {LB}
@@ -279,11 +278,11 @@ export const SONGS = {
       G: waltz('o2g', 'o3d', 'o3g'),
       D: waltz('o3d', 'o3a', 'o4d'),
     },
-    p1: '@bell v12 {A}{B} K12 v8 {A}{B} K0',
+    p1: '@bell v14 {A}{B} K12 v11 {A}{B} K0',
     p2: { from: 'p1', delay: 0.5, vol: 0.4 },
-    wv: `@sub v10 {W1}
-      @harp v9 {Em}{C}{Am}{B7}{Em}{C}{B7}{Em} {G}{D}{C}{G}{Am}{Em}{C}{B7}`,
-    ns: '[v2 r4 h4 h4 |]16 [v4 b4 v2 h4 h4 |]16',
+    wv: `@sub v7 {W1}
+      @harp v8 {Em}{C}{Am}{B7}{Em}{C}{B7}{Em} {G}{D}{C}{G}{Am}{Em}{C}{B7}`,
+    ns: '[r4 v4 b4 v3 b4 |]16 [v6 b4 v4 b4 v3 b4 |]16',
   },
 
   // --------------------------------------------------------------------------
@@ -312,7 +311,7 @@ export const SONGS = {
       DF: 'v8 k8 v4 h8 v7 s8 v4 h8 v8 k8 v7 s16 s16 v8 s8 v9 s8 |',
     },
     p1: '@lead v12 q6 l8 {A}{E1} {B} {A}{E2}',
-    p2: '@stab v9 {CA}{CE1} {CB} {CA}{CE2}',
+    p2: '@stab v10 {CA}{CE1} {CB} {CA}{CE2}',
     wv: '@bassp v13 q7 {BA}{BE1} {BB} {BA}{BE2}',
     ns: '[[{DR}]7{DF}]3',
   },
@@ -342,9 +341,9 @@ export const SONGS = {
       WB: '{Ab}|{Bb}|{Gm}|{Cm}|{Fm}|{Bb}|{Ab}|{Bb}|',
     },
     p1: '@warm v11 q8 {A}{B}{A}',
-    p2: '@soft v8 q8 {IA}{IB}{IA}',
+    p2: '@soft v9 q8 {IA}{IB}{IA}',
     wv: '@harp v11 l8 {WA}{WB}{WA}',
-    ns: '[v3 b4 v2 h4 h4 |]24',
+    ns: '[v7 b4 v5 h4 v4 h4 |]8 [v7 b4 v5 h4 h4 |]7 v7 b4 v5 b8 b8 v6 b8 b8 | [v7 b4 v5 h4 v4 h4 |]8',
   },
 
   // --------------------------------------------------------------------------
@@ -360,7 +359,7 @@ export const SONGS = {
       <b8 >d8 f+4. e8 d4 | g8 f+8 e4 <b2 | >c4 e4 f+4 a4 | g2. r4 |
       e4. d8 e4 g4 | f+2 d4 <b4 | >c8 d8 e8 g8 a4 g4 | f+4. e8 d2 |
       e4. d8 c4 <b4 | >f+4 d4 <a4 b4 | >c4 e4 d4 c4 | <b2. r4 |`,
-    p2: `@soft v8 q8 o4
+    p2: `@soft v9 q8 o4
       f+1 | g1 | g1 | f+1 | f+1 | g1 | g2 f+2 | e1 |
       o3 b1 | a1 | g1 | f+1 | o4 e1 | d1 | c1 | <b1 |`,
     wv: `@bassp v13 q7 o2

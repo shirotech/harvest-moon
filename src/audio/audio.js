@@ -29,12 +29,12 @@ const WHOLE = TPQ * 4;
 const CHANNELS = ['p1', 'p2', 'wv', 'ns'];
 const KIND = { p1: 'pulse', p2: 'pulse', wv: 'wave', ns: 'noise' };
 const DEFAULT_INST = { p1: 'lead', p2: 'soft', wv: 'bass' };
-const MIX = { p1: 0.2, p2: 0.15, wv: 0.3, ns: 0.2 }; // per-channel music mix
+const MIX = { p1: 0.26, p2: 0.17, wv: 0.2, ns: 0.2 }; // per-channel music mix (lead on top)
 const PAN = { p1: -0.12, p2: 0.2, wv: 0, ns: -0.06 };
 const LOOKAHEAD = 0.12; // seconds scheduled ahead of the clock
 const HIDDEN_LOOKAHEAD = 1.2; // background tabs tick slowly; look further ahead
 const TICK_MS = 25;
-const MUSIC_LEVEL = 0.85;
+const MUSIC_LEVEL = 1.0;
 const SFX_LEVEL = 1.0;
 const AMB_LEVEL = 0.6;
 const JINGLE_TAIL = 0.6;
@@ -485,12 +485,16 @@ function voice(ctx, R, dest, v) {
     P = src.playbackRate;
     conv = (x) => x / ctx.sampleRate;
     base = conv(v.clock || ctx.sampleRate);
+    P.value = v.from != null ? conv(v.from) : base;
   } else {
     src = ctx.createOscillator();
     if (v.src === 'sine' || v.src === 'triangle') src.type = v.src;
     else src.setPeriodicWave(v.src === 'wave' ? R.wave(v.wave) : R.pulse(v.duty ?? 2));
     P = src.frequency;
     base = v.f;
+    // Chrome applies an event at the exact start time a little late, so also set the
+    // intrinsic value: the first samples of the note are then already at pitch.
+    P.value = v.from != null ? v.from : base;
   }
   nodes.push(src);
   const endGuess = off + Math.max(0.005, v.r || 0);
@@ -526,6 +530,7 @@ function voice(ctx, R, dest, v) {
     const lfo = ctx.createOscillator();
     lfo.frequency.value = rate || 5.5;
     const lg = ctx.createGain();
+    lg.gain.value = 0;
     lg.gain.setValueAtTime(0, t);
     lg.gain.setValueAtTime(0, t + (delay || 0));
     lg.gain.linearRampToValueAtTime(depth * 100, t + (delay || 0) + 0.18);
@@ -541,6 +546,7 @@ function voice(ctx, R, dest, v) {
     const bq = ctx.createBiquadFilter();
     bq.type = fl.type || 'lowpass';
     bq.Q.value = fl.q ?? (bq.type === 'bandpass' ? 1 : 0.7);
+    bq.frequency.value = fl.f || 1000;
     bq.frequency.setValueAtTime(fl.f || 1000, t);
     if (fl.to) bq.frequency.exponentialRampToValueAtTime(fl.to, t + (fl.toT ?? Math.max(0.01, off - t)));
     node.connect(bq);
@@ -548,6 +554,7 @@ function voice(ctx, R, dest, v) {
     nodes.push(bq);
   }
   const g = ctx.createGain();
+  g.gain.value = 0;
   node.connect(g);
   nodes.push(g);
   const end = applyEnv(g.gain, t, v.peak, v.a, v.d, v.s ?? 1, off, v.r);

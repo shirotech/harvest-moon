@@ -25,6 +25,8 @@ const MINUTE_FRAMES = 40;
 const HAND_POS = CharArt.HAND_POS ?? {
   use_down_0: [11, 4], use_down_1: [10, 11], use_up_0: [11, 4], use_up_1: [11, 6], use_side_0: [9, 5], use_side_1: [12, 10],
 };
+// Nudges so the diagonal tool icons land on the target tile during a strike.
+const SWING_ADJ = { down_1: [-4, -3], side_1: [-2, -6] };
 const CHICKEN_NAMES = ['Clover', 'Pebble', 'Nugget', 'Dotty', 'Maple', 'Poppy', 'Hazel', 'Sprout', 'Button', 'Fern'];
 const COW_NAMES = ['Bluebell', 'Daisy', 'Buttercup', 'Mocha', 'Willow', 'Honey'];
 
@@ -1533,14 +1535,16 @@ export class PlayScene {
         gx = 13;
       }
       const pal = TOOL_PALETTES[this.state.tools[toolId] ?? 0] ?? 'tool';
-      r.spr(`tool_${toolId}`, x + hx - gx, y + hy - gy, flags, pal);
+      let [ax, ay] = SWING_ADJ[`${f.view}_${f.useFrame}`] ?? [0, 0];
+      if (pl.dir === 'left') ax = -ax;
+      r.spr(`tool_${toolId}`, x + hx - gx + ax, y + hy - gy + ay, flags, pal);
     };
     if (pl.dir === 'up') drawTool();
     r.spr(f.name, x, y, f.flip);
     if (pl.dir !== 'up') drawTool();
     if (this.state.carrying) {
       const bob = pl.moving && Math.floor(pl.t / 9) % 2 ? 1 : 0;
-      r.spr(`item_${this.state.carrying}`, x, y - 13 + bob);
+      r.spr(`item_${this.state.carrying}`, x, y - 15 + bob);
     }
     if (a?.kind === 'charge' && a.charge > 0 && Math.floor(this.game.frame / 4) % 2) r.spr('fx_sparkle_0', x + 12, y - 4);
     if (this.state.stamina / this.state.maxStamina < 0.15 && Math.floor(this.game.frame / 30) % 2 && !a) r.spr('fx_sweat', x + 12, y - 2);

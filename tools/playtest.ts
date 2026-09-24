@@ -197,6 +197,134 @@ const tests: Record<string, () => Promise<void>> = {
     await p.close();
   },
 
+  async fishing() {
+    const p = await open('autostart=1&skipintro=1&map=forest&x=13&y=13&time=7');
+    await ev(p, `(() => { const sc = GAME.scene; sc.state.tools.rod = 0; sc.state.equipped = 'rod'; sc.player.dir = 'right'; })()`);
+    await tap(p, 'KeyX', 1, 700);
+    let st = await ev(p, `GAME.scene.player.action?.phase`);
+    check(st === 'wait', `casting the rod waits for a bite (${st})`);
+    await ev(p, `GAME.scene.player.action.timer = 1`);
+    await p.waitForTimeout(200);
+    await shot(p, 'fishing-bite');
+    await tap(p, 'KeyX', 1, 400);
+    const caught = await ev(p, `GAME.scene.state.carrying`);
+    check(/^(fish_|boot)/.test(caught ?? ''), `caught something (${caught})`);
+    await shot(p, 'fishing-catch');
+    await p.close();
+  },
+
+  async animals() {
+    const p = await open('autostart=1&skipintro=1&map=ranch&x=6&y=5&time=11&gold=20000');
+    await ev(p, `GAME.scene.player.dir = 'up'`);
+    await tap(p, 'KeyZ', 1, 700);
+    for (let n = 0; n < 6; n++) {
+      const st = await info(p);
+      if (st.overlays.includes('TradeUI')) break;
+      await tap(p, 'KeyZ', 1, 400);
+    }
+    // feed x10
+    await tap(p, 'KeyZ', 1, 300);
+    for (let k = 0; k < 9; k++) await tap(p, 'ArrowRight', 1, 60);
+    await tap(p, 'KeyZ', 1, 300);
+    // chicken
+    await tap(p, 'ArrowDown', 2, 150);
+    await tap(p, 'KeyZ', 2, 400);
+    // cow + milker
+    await tap(p, 'ArrowDown', 1, 150);
+    await tap(p, 'KeyZ', 2, 400);
+    await tap(p, 'ArrowDown', 1, 150);
+    await tap(p, 'KeyZ', 2, 400);
+    await shot(p, 'ranch-shop');
+    const s = await ev(p, `(() => { const s = GAME.scene.state; return { feed: s.feed, animals: s.animals.map(a => a.kind), milker: s.tools.milker, gold: s.gold }; })()`);
+    check(s.feed === 10, `bought 10 feed (${s.feed})`);
+    check(s.animals.includes('chicken') && s.animals.includes('cow'), `bought a chicken and a cow (${s.animals})`);
+    check(s.milker === 0, 'bought a milker');
+    await tap(p, 'KeyX', 1, 300);
+    // fill coop troughs
+    await ev(p, `GAME.scene.loadMap('coop', 1, 3, 'left')`);
+    await ev(p, `GAME.scene.player.placeAt(1, 2, 'left'); GAME.scene.player.y += 16`);
+    await ev(p, `GAME.scene.player.placeAt(1, 3, 'up')`);
+    await ev(p, `GAME.scene.player.placeAt(0, 3, 'up')`);
+    await tap(p, 'KeyZ', 1, 400);
+    const coopFeed = await ev(p, `GAME.scene.state.coopFeed`);
+    check(coopFeed === 1, `feed bin fills the trough (${coopFeed})`);
+    await shot(p, 'coop-fed');
+    // next day: egg appears
+    await ev(p, `(() => { const sc = GAME.scene; sc.run(sc.sleepScript('sleep')); })()`);
+    await p.waitForTimeout(3500);
+    await tap(p, 'KeyZ', 3, 700);
+    await p.waitForTimeout(1200);
+    const eggs = await ev(p, `(GAME.scene.state.drops.coop ?? []).length`);
+    check(eggs === 1, `a fed chicken lays an egg overnight (${eggs})`);
+    await ev(p, `(() => { const sc = GAME.scene; sc.state.barnFeed = 1; const d = sc.state.drops.coop[0]; sc.loadMap('coop', d.x, d.y + 1, 'up'); })()`);
+    await tap(p, 'KeyZ', 1, 400);
+    const held = await ev(p, `GAME.scene.state.carrying`);
+    check(held === 'egg' || held === 'egg_gold', `picked up the egg (${held})`);
+    await shot(p, 'egg');
+    await p.close();
+  },
+
+  async charge() {
+    const p = await open('autostart=1&skipintro=1');
+    await ev(p, `(() => { const sc = GAME.scene; const s = sc.state; for (let i=0;i<s.farm.debris.length;i++) s.farm.debris[i]=0; s.tools.hoe = 2; sc.player.placeAt(10, 10, 'down'); })()`);
+    await hold(p, 'KeyX', 1400);
+    await p.waitForTimeout(600);
+    const tilled = await ev(p, `GAME.scene.state.farm.soil.reduce((a,b)=>a+b,0)`);
+    check(tilled === 9, `fully charged golden hoe tills 3x3 (${tilled})`);
+    await shot(p, 'charged-hoe');
+    await p.close();
+  },
+
+  async festival() {
+    const p = await open('autostart=1&skipintro=1&map=village&x=1&y=12&day=8&time=11');
+    await ev(p, `GAME.scene.warpTo({ to: 'village', tx: 2, ty: 12, dir: 'right' })`);
+    await p.waitForTimeout(1500);
+    await shot(p, 'festival');
+    const i = await info(p);
+    check(i.overlays.includes('DialogBox'), 'festival event starts on arrival');
+    for (let n = 0; n < 20; n++) {
+      const st = await info(p);
+      if (!st.script && !st.overlays.length) break;
+      await tap(p, 'KeyZ', 1, 200);
+    }
+    const seen = await ev(p, `GAME.scene.state.flags.festivals.length`);
+    check(seen === 1, 'festival recorded');
+    await p.close();
+  },
+
+  async faint() {
+    const p = await open('autostart=1&skipintro=1');
+    await ev(p, `(() => { const s = GAME.scene.state; s.stamina = 1; for (let i=0;i<s.farm.debris.length;i++) s.farm.debris[i]=0; GAME.scene.player.placeAt(10, 10, 'down'); })()`);
+    await tap(p, 'KeyX', 1, 800);
+    await shot(p, 'faint');
+    for (let n = 0; n < 20; n++) {
+      await tap(p, 'KeyZ', 1, 400);
+      const d = await info(p);
+      if (d.day === 'spring 2 y1' && !d.script) break;
+    }
+    const d = await info(p);
+    check(d.day === 'spring 2 y1', `fainting ends the day (${d.day})`);
+    check(d.stamina === 50, `wake with half stamina (${d.stamina})`);
+    await p.close();
+  },
+
+  async save() {
+    const p = await open('autostart=1&skipintro=1&gold=4321');
+    await ev(p, `(() => { const sc = GAME.scene; sc.loadMap('house', 6, 3, 'up'); })()`);
+    await tap(p, 'KeyZ', 1, 600);
+    await tap(p, 'KeyZ', 3, 400);
+    const saved = await ev(p, `!!localStorage.getItem('moonlit-acres-save-v1')`);
+    check(saved, 'diary saves the game');
+    await p.goto(p.url().split('?')[0] + '?renderer=' + backend);
+    await p.waitForFunction(() => (window as any).GAME?.ready, null, { timeout: 20000 });
+    await p.waitForTimeout(500);
+    await tap(p, 'Enter', 1, 500);
+    await tap(p, 'Enter', 1, 1500);
+    const i = await info(p);
+    check(i.scene === 'PlayScene' && i.gold === 4321, `continue restores the save (${i.scene}, ${i.gold})`);
+    await p.close();
+  },
+
   async places() {
     for (const [name, q] of [
       ['forest', 'map=forest&x=12&y=10&time=11'],

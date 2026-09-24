@@ -32,6 +32,7 @@ const lpad = (s: unknown, n: number) => String(s).padStart(n);
 // ---------------------------------------------------------------------------
 // 1. static analysis
 console.log('== songs (static) ==');
+const KEY_PC: Record<string, number> = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
 const PC = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 // Krumhansl–Kessler key profiles
 const KK_MAJ = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
@@ -60,10 +61,8 @@ for (const [name, def] of Object.entries(SONGS) as [string, any][]) {
   const scale = scaleOf(def.key, def.mode);
   const ok = new Set(scale);
   if (def.mode === 'minor') {
-    const root = scale[0] === undefined ? 0 : ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'].indexOf(def.key);
-    const rootPc = ({ C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 } as any)[def.key] ?? root;
-    ok.add((rootPc + 11) % 12); // harmonic minor leading tone
-    ok.add((rootPc + 9) % 12); // melodic minor 6th
+    ok.add((KEY_PC[def.key] + 11) % 12); // harmonic-minor leading tone
+    ok.add((KEY_PC[def.key] + 9) % 12); // melodic-minor sixth
   }
   const inKey = total ? hist.reduce((a, w, pc) => a + (ok.has(pc) ? w : 0), 0) / total : 1;
   let best = { r: -2, name: '' };
@@ -173,18 +172,25 @@ for (const it of items) {
     const ms = performance.now() - t0;
     const chs = [0, 1].map((i) => buf.getChannelData(Math.min(i, buf.numberOfChannels - 1)));
     const end = loopLen ? Math.min(buf.length, Math.round(loopLen * buf.sampleRate)) : buf.length;
+    // clicks: a sample that leaps out of near-silence, or signal that drops straight to silence
     let peak = 0, sum = 0, jump = 0, clip = 0;
+    const Q = 24;
     for (const d of chs) {
-      let prev = 0;
-      for (let i = 0; i < end; i++) {
+      let quietRun = Q;
+      for (let i = 1; i < end; i++) {
         const v = d[i];
         const a = v < 0 ? -v : v;
         if (a > peak) peak = a;
         if (a > 0.985) clip++;
         sum += v * v;
-        const j = Math.abs(v - prev);
-        if (j > jump) jump = j;
-        prev = v;
+        const pa = Math.abs(d[i - 1]);
+        if (quietRun >= Q && a > 0.03) jump = Math.max(jump, a); // hard onset
+        if (pa > 0.03 && a < 0.002) {
+          let silent = true;
+          for (let k = i; k < Math.min(end, i + Q); k++) if (Math.abs(d[k]) > 0.002) { silent = false; break; }
+          if (silent) jump = Math.max(jump, pa); // hard stop
+        }
+        quietRun = a < 0.001 ? quietRun + 1 : 0;
       }
     }
     const rms = Math.sqrt(sum / (end * 2));
@@ -201,12 +207,24 @@ for (const it of items) {
     const loud = top.reduce((a, b) => a + b, 0) / top.length;
     let tail = 0;
     for (const d of chs) for (let i = Math.max(0, buf.length - Math.round(buf.sampleRate * 0.01)); i < buf.length; i++) tail = Math.max(tail, Math.abs(d[i]));
-    // loop seam: compare 2.5 s just after the loop point with the same span of the first pass
+    // loop seam: the 10 ms loudness envelope just after the loop point should match the
+    // same span of the first pass (phase-independent, so noise and oscillator phase don't matter)
     let seam = null as null | number;
     if (loopLen && buf.length > (loopLen + 2.6) * buf.sampleRate) {
-      const a0 = Math.round(0.4 * buf.sampleRate), b0 = Math.round((loopLen + 0.4) * buf.sampleRate), n = Math.round(2.2 * buf.sampleRate);
+      const w = Math.round(0.01 * buf.sampleRate);
+      const env = (s0: number) => {
+        const out: number[] = [];
+        for (let k = 0; k < 250; k++) {
+          let e = 0;
+          for (const d of chs) for (let i = s0 + k * w; i < s0 + (k + 1) * w; i++) e += d[i] * d[i];
+          out.push(Math.sqrt(e));
+        }
+        return out;
+      };
+      const A = env(Math.round(0.05 * buf.sampleRate)), B = env(Math.round((loopLen + 0.05) * buf.sampleRate));
+      const ma = A.reduce((x, y) => x + y) / A.length, mb = B.reduce((x, y) => x + y) / B.length;
       let ab = 0, aa = 0, bb = 0;
-      for (const d of chs) for (let i = 0; i < n; i++) { const x = d[a0 + i], y = d[b0 + i]; ab += x * y; aa += x * x; bb += y * y; }
+      for (let i = 0; i < A.length; i++) { ab += (A[i] - ma) * (B[i] - mb); aa += (A[i] - ma) ** 2; bb += (B[i] - mb) ** 2; }
       seam = ab / Math.sqrt(aa * bb || 1);
     }
     let wav = null as null | string;
@@ -235,9 +253,9 @@ for (const it of items) {
   const db = (x: number) => (x > 0 ? 20 * Math.log10(x) : -Infinity);
   if (r.peak < 0.01 || db(r.rms) < -60) flags.push('SILENT');
   if (r.clip > 0 || r.peak > 0.97) flags.push(`CLIP(${r.clip})`);
-  if (r.jump > 0.5) flags.push('CLICK?');
+  if (r.jump > 0.1) flags.push(`CLICK?(${r.jump.toFixed(2)})`);
   if ((it.kind === 'sfx' || it.kind === 'jingle') && r.tail > 0.02) flags.push(`TAIL(${r.tail.toFixed(3)})`);
-  if (r.seam != null && r.seam < 0.9) flags.push(`SEAM(${r.seam.toFixed(2)})`);
+  if (r.seam != null && r.seam < 0.85) flags.push(`SEAM(${r.seam.toFixed(2)})`);
   if (it.kind === 'jingle' && (r.dur < 2 || r.dur > 6.2)) flags.push(`LEN(${r.dur.toFixed(2)})`);
   for (const f of flags) flag(`${it.name}: ${f}`);
   if (r.wav) {

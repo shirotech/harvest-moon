@@ -39,7 +39,7 @@ export const SFX = {
     s.tone({ duty: 1, note: 'A6', to: 'D6', dur: 0.09, glide: 0.08, vol: 0.22, r: 0.03 });
   },
   text(s) {
-    s.tone({ duty: 0, note: 'E6', dur: 0.012, vol: 0.09, a: 0.001, r: 0.012 });
+    s.tone({ duty: 0, note: 'E6', dur: 0.012, vol: 0.12, a: 0.001, r: 0.012 });
   },
   menu_open(s) {
     s.tone({ duty: 1, note: 'C6', seq: [0, 4, 7, 12], stepTime: 0.028, dur: 0.11, vol: 0.2, r: 0.04 });
@@ -55,15 +55,15 @@ export const SFX = {
   // ---------------------------------------------------------------- tools
   hoe(s) {
     s.duck = 0.85;
-    s.tone({ type: 'wave', wave: 'sine', freq: 150, to: 55, glide: 0.08, dur: 0.07, vol: 0.7, d: 0.05, r: 0.03 });
-    s.noise({ clock: 8000, to: 2500, dur: 0.06, vol: 0.45, d: 0.04, r: 0.03 });
+    s.tone({ type: 'wave', wave: 'sine', freq: 150, to: 55, glide: 0.08, dur: 0.07, vol: 0.5, d: 0.05, r: 0.03 });
+    s.noise({ clock: 8000, to: 2500, dur: 0.06, vol: 0.34, d: 0.04, r: 0.03 });
     s.noise({ at: 0.05, clock: 16000, dur: 0.09, vol: 0.18, d: 0.05, filter: { type: 'lowpass', f: 3000 } });
   },
   water(s) {
     s.duck = 0.85;
-    s.noise({ clock: 60000, dur: 0.38, vol: 0.12, a: 0.03, r: 0.1, filter: { type: 'bandpass', f: 2400, q: 0.9 } });
+    s.noise({ clock: 60000, dur: 0.38, vol: 0.16, a: 0.03, r: 0.1, filter: { type: 'bandpass', f: 2400, q: 0.9 } });
     for (const k of range(8))
-      s.noise({ at: k * 0.042, clock: 40000 + k * 4000, dur: 0.025, vol: 0.2 * (1 - k / 11), d: 0.018,
+      s.noise({ at: k * 0.042, clock: 40000 + k * 4000, dur: 0.025, vol: 0.3 * (1 - k / 11), d: 0.018,
         filter: { type: 'bandpass', f: 3000 + (k % 3) * 700, q: 1.4 }, pan: ((k % 3) - 1) * 0.3 });
   },
   sickle(s) {
@@ -74,30 +74,30 @@ export const SFX = {
   },
   hammer(s) {
     s.duck = 0.8;
-    s.noise({ short: true, clock: 36000, dur: 0.05, vol: 0.4, d: 0.045, r: 0.04 });
+    s.noise({ short: true, clock: 36000, dur: 0.05, vol: 0.32, d: 0.045, r: 0.04 });
     s.tone({ duty: 0, note: 'A6', dur: 0.01, vol: 0.2, d: 0.07, r: 0.12 });
     s.tone({ duty: 0, freq: 2489, dur: 0.01, vol: 0.12, d: 0.05, r: 0.1 });
-    s.tone({ type: 'wave', wave: 'sine', freq: 190, to: 80, glide: 0.06, dur: 0.06, vol: 0.55, d: 0.04 });
+    s.tone({ type: 'wave', wave: 'sine', freq: 190, to: 80, glide: 0.06, dur: 0.06, vol: 0.42, d: 0.04 });
   },
   axe(s) {
     s.duck = 0.8;
-    s.tone({ type: 'wave', wave: 'sine', freq: 330, to: 120, glide: 0.06, dur: 0.06, vol: 0.65, d: 0.045 });
-    s.noise({ clock: 12000, dur: 0.05, vol: 0.4, d: 0.03, filter: { type: 'lowpass', f: 2600 } });
+    s.tone({ type: 'wave', wave: 'sine', freq: 330, to: 120, glide: 0.06, dur: 0.06, vol: 0.5, d: 0.045 });
+    s.noise({ clock: 12000, dur: 0.05, vol: 0.32, d: 0.03, filter: { type: 'lowpass', f: 2600 } });
     s.tone({ duty: 2, freq: 540, to: 420, dur: 0.02, vol: 0.15, r: 0.02 });
   },
   rock_break(s) {
     s.duck = 0.75;
-    s.tone({ type: 'wave', wave: 'sine', freq: 120, to: 50, glide: 0.12, dur: 0.1, vol: 0.55, d: 0.07 });
+    s.tone({ type: 'wave', wave: 'sine', freq: 120, to: 50, glide: 0.12, dur: 0.1, vol: 0.42, d: 0.07 });
     for (const k of range(4))
-      s.noise({ at: k * 0.055, clock: 9000 - k * 1600, dur: 0.07, vol: 0.5 - k * 0.09, d: 0.045, r: 0.03, pan: (k % 2 ? 0.25 : -0.25) });
+      s.noise({ at: k * 0.055, clock: 9000 - k * 1600, dur: 0.07, vol: 0.4 - k * 0.07, d: 0.045, r: 0.03, pan: (k % 2 ? 0.25 : -0.25) });
     s.noise({ at: 0.24, clock: 22000, dur: 0.03, vol: 0.14, d: 0.02 });
     s.noise({ at: 0.31, clock: 18000, dur: 0.03, vol: 0.1, d: 0.02 });
   },
   wood_break(s) {
     s.duck = 0.75;
-    s.noise({ clock: 42000, to: 7000, dur: 0.08, vol: 0.5, d: 0.05, r: 0.03 });
+    s.noise({ clock: 42000, to: 7000, dur: 0.08, vol: 0.4, d: 0.05, r: 0.03 });
     s.tone({ duty: 0, freq: 320, to: 90, glide: 0.24, dur: 0.24, vol: 0.28, d: 0.12, r: 0.05 });
-    s.tone({ at: 0.17, type: 'wave', wave: 'sine', freq: 260, to: 110, glide: 0.05, dur: 0.05, vol: 0.5, d: 0.04 });
+    s.tone({ at: 0.17, type: 'wave', wave: 'sine', freq: 260, to: 110, glide: 0.05, dur: 0.05, vol: 0.4, d: 0.04 });
     s.noise({ at: 0.17, clock: 14000, dur: 0.04, vol: 0.3, d: 0.03 });
     s.tone({ at: 0.29, type: 'wave', wave: 'sine', freq: 220, to: 100, glide: 0.05, dur: 0.05, vol: 0.35, d: 0.04 });
   },
@@ -115,14 +115,14 @@ export const SFX = {
   },
   seed(s) {
     for (const [i, at] of [0, 0.03, 0.065, 0.1, 0.14, 0.185].entries())
-      s.noise({ at, clock: 100000 + i * 9000, dur: 0.008, vol: 0.18 - i * 0.015, d: 0.01, r: 0.01,
+      s.noise({ at, clock: 100000 + i * 9000, dur: 0.008, vol: 0.24 - i * 0.02, d: 0.01, r: 0.01,
         filter: { type: 'highpass', f: 3000 }, pan: ((i % 3) - 1) * 0.35 });
     s.noise({ clock: 50000, dur: 0.2, vol: 0.05, a: 0.04, r: 0.05, filter: { type: 'bandpass', f: 4500, q: 1 } });
   },
   ship(s) {
     s.duck = 0.7;
     s.noise({ clock: 20000, to: 90000, dur: 0.15, vol: 0.22, a: 0.05, r: 0.03, filter: { type: 'bandpass', f: 1400, to: 4200, q: 1 } });
-    s.tone({ at: 0.16, type: 'wave', wave: 'sine', freq: 150, to: 65, glide: 0.08, dur: 0.08, vol: 0.6, d: 0.06 });
+    s.tone({ at: 0.16, type: 'wave', wave: 'sine', freq: 150, to: 65, glide: 0.08, dur: 0.08, vol: 0.48, d: 0.06 });
     s.noise({ at: 0.16, clock: 6000, dur: 0.05, vol: 0.32, d: 0.035 });
     s.tone({ at: 0.27, duty: 0, note: 'E6', dur: 0.02, vol: 0.22, d: 0.18, r: 0.25 });
     s.tone({ at: 0.27, duty: 0, note: 'B6', dur: 0.02, vol: 0.1, d: 0.14, r: 0.2, pan: 0.3 });
@@ -183,7 +183,7 @@ export const SFX = {
   door(s) {
     s.duck = 0.85;
     s.tone({ duty: 0, freq: 210, to: 270, glide: 0.2, dur: 0.2, vol: 0.1, a: 0.03, vib: [1.5, 17], r: 0.03 });
-    s.tone({ at: 0.21, type: 'wave', wave: 'sine', freq: 115, to: 55, glide: 0.09, dur: 0.09, vol: 0.6, d: 0.06 });
+    s.tone({ at: 0.21, type: 'wave', wave: 'sine', freq: 115, to: 55, glide: 0.09, dur: 0.09, vol: 0.45, d: 0.06 });
     s.noise({ at: 0.21, clock: 4000, dur: 0.06, vol: 0.3, d: 0.04 });
   },
   eat(s) {
@@ -201,19 +201,19 @@ export const SFX = {
   },
   heart(s) {
     s.duck = 0.8;
-    s.tone({ duty: 0, note: 'E6', seq: [0, 4, 7], stepTime: 0.07, dur: 0.24, vol: 0.22, d: 0.3, s: 0.4, r: 0.15, vib: [0.2, 6, 0.2] });
-    s.tone({ at: 0.14, duty: 1, note: 'B6', dur: 0.03, vol: 0.1, d: 0.2, r: 0.2, pan: 0.35 });
+    s.tone({ duty: 0, note: 'E6', seq: [0, 4, 7], stepTime: 0.07, dur: 0.24, vol: 0.3, d: 0.3, s: 0.4, r: 0.15, vib: [0.2, 6, 0.2] });
+    s.tone({ at: 0.14, duty: 1, note: 'B6', dur: 0.03, vol: 0.14, d: 0.2, r: 0.2, pan: 0.35 });
   },
   milk(s) {
     for (const k of range(2)) {
-      s.noise({ at: k * 0.18, clock: 50000, dur: 0.09, vol: 0.28, a: 0.01, d: 0.06, r: 0.03,
+      s.noise({ at: k * 0.18, clock: 50000, dur: 0.09, vol: 0.35, a: 0.01, d: 0.06, r: 0.03,
         filter: { type: 'bandpass', f: 2600, to: 1400, q: 2 } });
       s.tone({ at: k * 0.18 + 0.02, type: 'sine', freq: 900, to: 700, dur: 0.05, vol: 0.07, r: 0.02 });
     }
   },
   brush(s) {
     for (const k of range(3))
-      s.noise({ at: k * 0.12, clock: 80000, dur: 0.08, vol: 0.2, a: 0.03, d: 0.05, r: 0.03,
+      s.noise({ at: k * 0.12, clock: 80000, dur: 0.08, vol: 0.26, a: 0.03, d: 0.05, r: 0.03,
         filter: { type: 'bandpass', f: 3000 + k * 400, q: 1.2 }, pan: (k - 1) * 0.2 });
   },
   step(s) {
@@ -256,10 +256,10 @@ export const SFX = {
   // ---------------------------------------------------------------- weather
   thunder(s) {
     s.duck = 0.5;
-    s.noise({ clock: 60000, dur: 0.1, vol: 0.5, d: 0.08, r: 0.05, filter: { type: 'lowpass', f: 5000 } });
-    s.noise({ at: 0.03, clock: 2000, to: 700, glide: 2.0, dur: 1.6, vol: 0.55, a: 0.08, d: 0.9, s: 0.25, r: 0.8,
+    s.noise({ clock: 60000, dur: 0.1, vol: 0.4, d: 0.08, r: 0.05, filter: { type: 'lowpass', f: 5000 } });
+    s.noise({ at: 0.03, clock: 2000, to: 700, glide: 2.0, dur: 1.6, vol: 0.45, a: 0.08, d: 0.9, s: 0.25, r: 0.8,
       filter: { type: 'lowpass', f: 420, to: 150, q: 0.8 } });
-    s.noise({ at: 0.05, src: 'amb', dur: 1.8, vol: 0.6, a: 0.2, d: 1.0, s: 0.3, r: 0.9, filter: { type: 'lowpass', f: 260, q: 0.9 } });
+    s.noise({ at: 0.05, src: 'amb', dur: 1.8, vol: 0.5, a: 0.2, d: 1.0, s: 0.3, r: 0.9, filter: { type: 'lowpass', f: 260, q: 0.9 } });
     s.noise({ at: 0.7, src: 'amb', dur: 0.8, vol: 0.35, a: 0.25, d: 0.5, r: 0.6, filter: { type: 'lowpass', f: 180, q: 1 } });
   },
 };
@@ -328,11 +328,11 @@ export const AMBIENT = {
     ],
   },
   crickets: {
-    gain: 0.45,
+    gain: 0.9,
     beds: [{ gain: 0.05, filters: [['lowpass', 1200]], lfo: [0.05, 0.3] }],
     events: [
-      { every: [0.7, 1.9], play: (s, r) => chirp(s, 4400, 3 + Math.floor(r() * 3), 0.1, -0.45) },
-      { every: [0.9, 2.6], first: 0.4, play: (s, r) => chirp(s, 5100, 2 + Math.floor(r() * 3), 0.08, 0.5) },
+      { every: [0.7, 1.9], play: (s, r) => chirp(s, 4400, 3 + Math.floor(r() * 3), 0.13, -0.45) },
+      { every: [0.9, 2.6], first: 0.4, play: (s, r) => chirp(s, 5100, 2 + Math.floor(r() * 3), 0.1, 0.5) },
       { every: [1.5, 3.5], first: 1.1, play: (s, r) => chirp(s, 3900, 4, 0.04, rpan(r, 0.3)) },
     ],
   },
